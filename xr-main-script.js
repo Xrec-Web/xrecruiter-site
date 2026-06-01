@@ -42,6 +42,8 @@ function initPage() {
   if (has('[data-filter-group]')) initFilterBasic();
   if (has('[data-3d-hover-target]')) init3dPerspectiveHover();
   if (has('[data-toc-wrap]')) initTableOfContents();
+  if (has('#billing')) initCompCalculator();
+  if (has('.pill-container')) initPillSimulation();
   if (has('.lottie-anim')) initLottieAnimations();
   if (has('[data-vimeo-player-init]')) initVimeoPlayer();
   initTabTitleBlur();
@@ -1580,5 +1582,312 @@ function initTableOfContents() {
         window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
       }
     });
+  });
+}
+
+
+// COMP CALCULATOR
+
+function initCompCalculator() {
+  const billingInput = document.getElementById("billing");
+  const earningsInput = document.getElementById("income");
+
+  const earningsBar = document.querySelector(".u_comp_bar_income");
+  const earningsBarXR = document.querySelector(".xr_comp_bar_income");
+
+  const billingTextElements = document.querySelectorAll("[data-billing]");
+  const differenceElement = document.querySelector(".difference-element");
+  const fiveYearElement = document.querySelector(".five-year-element");
+  const perDayElement = document.querySelector(".day-element");
+  const underText = document.querySelector(".under-text");
+  const overText = document.querySelector(".over-text");
+  const compAdditional = document.querySelector(".comp-additional");
+
+  let inputTimeout;
+
+  billingInput.placeholder = "Annual Billings";
+  earningsInput.placeholder = "Annual Earnings";
+
+  gsap.set([earningsBar, earningsBarXR], { width: 0, opacity: 0 });
+  gsap.set(compAdditional, { height: 0, overflow: "hidden" });
+  gsap.set([underText, overText], { opacity: 0, display: "none" });
+
+  function updateCurrentBar(billing, earnings) {
+    const earningsPercent = Math.max((earnings / billing) * 100, 0);
+
+    billingTextElements.forEach(el => {
+      el.innerText = billing > 0 ? `${billing.toLocaleString()} Billings` : "";
+    });
+
+    return gsap.to(earningsBar, {
+      width: `${earningsPercent}%`,
+      opacity: 1,
+      duration: 0.6,
+      ease: "power2.out",
+      onStart: () => {
+        earningsBar.innerText = `${Math.round(earnings).toLocaleString()} Earnings`;
+        requestAnimationFrame(() => {
+          const textWidth = earningsBar.scrollWidth;
+          const containerWidth = earningsBar.parentElement.offsetWidth;
+          const percentageWidth = (textWidth / containerWidth) * 100;
+          if (earningsPercent < percentageWidth) {
+            earningsBar.style.width = "auto";
+            earningsBar.style.minWidth = `${textWidth}px`;
+          } else {
+            earningsBar.style.minWidth = "0";
+          }
+        });
+      },
+    });
+  }
+
+  function updateXRecruiterBar(billing) {
+    const xrEarnings = billing * 0.81;
+    return gsap.to(earningsBarXR, {
+      width: "81%",
+      opacity: 1,
+      duration: 0.6,
+      ease: "power2.out",
+      onStart: () => {
+        earningsBarXR.innerText = `${Math.round(xrEarnings).toLocaleString()} Earnings`;
+      },
+    });
+  }
+
+  function fadeOutText(callback) {
+    gsap.to([underText, overText], {
+      opacity: 0,
+      duration: 0.2,
+      onComplete: () => {
+        underText.style.display = "none";
+        overText.style.display = "none";
+        if (callback) callback();
+      },
+    });
+  }
+
+  function animateTextBlock(showUnderText) {
+    const target = showUnderText ? underText : overText;
+    const other = showUnderText ? overText : underText;
+
+    gsap.set(target, { display: "block" });
+    gsap.set(other, { display: "none" });
+    gsap.set(compAdditional, { height: "auto" });
+    const endHeight = compAdditional.offsetHeight;
+    gsap.set(compAdditional, { height: 0 });
+
+    gsap.to(compAdditional, { height: endHeight, duration: 0.4, ease: "power2.out" });
+    gsap.to(target, { opacity: 1, duration: 0.4, ease: "power2.out" });
+  }
+
+  function updateAll() {
+    const billingVal = parseFloat(billingInput.value.replace(/[^0-9.]/g, "")) || 0;
+    const earningsVal = parseFloat(earningsInput.value.replace(/[^0-9.]/g, "")) || 0;
+
+    billingInput.value = billingVal > 0 ? `$${billingVal.toLocaleString()}` : "";
+    earningsInput.value = earningsVal > 0 ? `$${earningsVal.toLocaleString()}` : "";
+
+    if (!billingVal || !earningsVal) {
+      gsap.set([earningsBar, earningsBarXR], { width: 0, opacity: 0 });
+      gsap.set(compAdditional, { height: 0 });
+      fadeOutText();
+      return;
+    }
+
+    fadeOutText(() => {
+      const currentTimeline = updateCurrentBar(billingVal, earningsVal);
+      const xrEarnings = billingVal * 0.81;
+      const xrTimeline = updateXRecruiterBar(billingVal);
+
+      const difference = xrEarnings - earningsVal;
+
+      if (differenceElement) differenceElement.textContent = `$${difference.toLocaleString()}`;
+      if (fiveYearElement) fiveYearElement.textContent = `$${(difference * 5).toLocaleString()}`;
+      if (perDayElement) perDayElement.textContent = `$${Math.round(difference / 365).toLocaleString()}`;
+
+      currentTimeline.eventCallback("onComplete", () => {
+        xrTimeline.eventCallback("onComplete", () => {
+          animateTextBlock(difference >= 0);
+        });
+      });
+    });
+  }
+
+  const debounceUpdate = () => {
+    clearTimeout(inputTimeout);
+    inputTimeout = setTimeout(updateAll, 200);
+  };
+
+  billingInput.addEventListener("input", debounceUpdate);
+  earningsInput.addEventListener("input", debounceUpdate);
+}
+
+
+// PILL PHYSICS SIMULATION
+
+function initPillSimulation() {
+  if (window.innerWidth <= 750) return;
+  if (typeof Matter === "undefined") return;
+
+  const { Engine, World, Bodies, Events, Runner, Body, Sleeping, Mouse, MouseConstraint, Render } = Matter;
+
+  function initSimulationFor(containerElement) {
+    const pillElements = containerElement.querySelectorAll(".pill");
+    const containerRect = containerElement.getBoundingClientRect();
+
+    const engine = Engine.create();
+    const world = engine.world;
+    engine.gravity.y = 1.2;
+
+    const containerWidth = containerRect.width;
+    const containerHeight = containerRect.height;
+
+    const render = Render.create({
+      element: containerElement,
+      engine: engine,
+      options: {
+        width: containerWidth,
+        height: containerHeight,
+        wireframes: false,
+        background: "transparent",
+        showDebug: false,
+        showAxes: false,
+        showAngleIndicator: false,
+        showVelocity: false,
+      },
+    });
+
+    render.canvas.style.position = "absolute";
+    render.canvas.style.top = "0";
+    render.canvas.style.left = "0";
+    render.canvas.style.pointerEvents = "auto";
+    render.canvas.style.opacity = "0";
+    containerElement.style.position = "relative";
+
+    const wallOptions = { isStatic: true, render: { visible: false } };
+    World.add(world, [
+      Bodies.rectangle(containerWidth / 2, containerHeight + 150, containerWidth + 200, 300, wallOptions),
+      Bodies.rectangle(-50, containerHeight / 2, 100, containerHeight + 200, wallOptions),
+      Bodies.rectangle(containerWidth + 50, containerHeight / 2, 100, containerHeight + 200, wallOptions),
+      Bodies.rectangle(containerWidth / 2, -50, containerWidth + 200, 100, wallOptions),
+    ]);
+
+    const bodies = [];
+
+    pillElements.forEach((el, index) => {
+      el.style.position = "absolute";
+      el.style.transformOrigin = "center center";
+      el.style.margin = "0";
+      el.style.pointerEvents = "none";
+      el.style.cursor = "pointer";
+      el.style.zIndex = "10";
+
+      const bounds = el.getBoundingClientRect();
+      const w = bounds.width;
+      const h = bounds.height;
+
+      let x, y;
+      if (containerElement.textContent.includes("With xrecruiter")) {
+        x = containerWidth / 2;
+        y = 50 + index * (h + 10);
+      } else {
+        x = containerWidth / 2 + (Math.random() - 0.5) * 100;
+        y = 50;
+      }
+
+      const body = Bodies.rectangle(x, y, w, h, {
+        restitution: 0.3,
+        friction: 0.1,
+        frictionAir: 0.02,
+        chamfer: { radius: Math.min(w, h) / 2, max: 20 },
+        density: 0.001,
+        render: { fillStyle: "transparent" },
+      });
+
+      el.style.left = `${x - w / 2}px`;
+      el.style.top = `${y - h / 2}px`;
+      el.style.transform = `rotate(0rad)`;
+
+      body.el = el;
+      bodies.push(body);
+      World.add(world, body);
+    });
+
+    const mouse = Mouse.create(render.canvas);
+    const mouseConstraint = MouseConstraint.create(engine, {
+      mouse,
+      constraint: { stiffness: 0.2, damping: 0.1, render: { visible: false } },
+      collisionFilter: { group: 0 },
+    });
+    World.add(world, mouseConstraint);
+    render.mouse = mouse;
+
+    Events.on(mouseConstraint, "mousedown", ({ mouse }) => {
+      Matter.Query.point(bodies, mouse.position).forEach(body => {
+        Body.setStatic(body, false);
+        Sleeping.set(body, false);
+      });
+    });
+
+    Events.on(mouseConstraint, "mouseup", () => {
+      if (mouseConstraint.body) {
+        const body = mouseConstraint.body;
+        Body.setVelocity(body, { x: body.velocity.x * 0.5, y: body.velocity.y * 0.5 });
+      }
+    });
+
+    Events.on(engine, "afterUpdate", () => {
+      bodies.forEach(body => {
+        if (!body.el) return;
+        if (body.position.y > containerHeight + 100 || body.position.y < -100) {
+          Body.setPosition(body, { x: containerWidth / 2 + (Math.random() - 0.5) * 100, y: 50 });
+          Body.setVelocity(body, { x: 0, y: 0 });
+          Body.setAngularVelocity(body, 0);
+        }
+        body.el.style.left = `${body.position.x - body.el.offsetWidth / 2}px`;
+        body.el.style.top = `${body.position.y - body.el.offsetHeight / 2}px`;
+        body.el.style.transform = `rotate(${body.angle}rad)`;
+      });
+    });
+
+    Events.on(engine, "collisionStart", event => {
+      event.pairs.forEach(({ bodyA, bodyB }) => {
+        if (bodyA.el && bodyB.el) {
+          Body.applyForce(bodyA, bodyA.position, {
+            x: (bodyA.position.x - bodyB.position.x) * 0.001,
+            y: (bodyA.position.y - bodyB.position.y) * 0.001,
+          });
+          Body.applyForce(bodyB, bodyB.position, {
+            x: (bodyB.position.x - bodyA.position.x) * 0.001,
+            y: (bodyB.position.y - bodyA.position.y) * 0.001,
+          });
+        }
+      });
+    });
+
+    Engine.run(engine);
+    Runner.run(Runner.create(), engine);
+    Render.run(render);
+  }
+
+  document.querySelectorAll(".pill-container").forEach(containerElement => {
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          initSimulationFor(containerElement);
+          obs.disconnect();
+        }
+      });
+    }, { threshold: 0.1 });
+
+    observer.observe(containerElement);
+  });
+
+  let resizeTimeout;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      if (window.innerWidth > 750) initPillSimulation();
+    }, 250);
   });
 }
