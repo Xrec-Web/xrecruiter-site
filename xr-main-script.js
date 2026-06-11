@@ -1303,7 +1303,7 @@ function initFilterListReveal() {
       });
     };
 
-    butt.addEventListener("click", open);
+    butt.addEventListener("click", () => (isOpen ? close() : open()));
 
     list.querySelectorAll("[filter-button]").forEach((child) => {
       child.addEventListener("click", close);
