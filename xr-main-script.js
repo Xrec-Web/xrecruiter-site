@@ -47,6 +47,8 @@ function initPage() {
   if (has('.lottie-anim')) initLottieAnimations();
   if (has('[data-vimeo-player-init]')) initVimeoPlayer();
   if (has('[res-wrap]')) initResHover();
+  if (has('[data-filter]')) initFilterDropdown();
+  if (has('[filter-open]')) initFilterListReveal();
   initTabTitleBlur();
 }
 
@@ -1127,6 +1129,184 @@ function initFilterBasic() {
         if (button.getAttribute("data-filter-status") === "active") return;
         handleFilter(target);
       });
+    });
+  });
+}
+
+
+// FILTER DROPDOWN
+
+function initFilterDropdown() {
+  const EASE = "power3.out";
+
+  document.querySelectorAll("[data-filter]").forEach((filter) => {
+    const btn = filter.querySelector("[data-filter-btn]");
+    const menu = filter.querySelector("[data-filter-menu]");
+    const chevron = filter.querySelector(".filter__chevron");
+    const items = filter.querySelectorAll(".filter__item");
+    if (!btn || !menu) return;
+
+    let isOpen = false;
+    const isMobile = () => window.matchMedia("(max-width: 767px)").matches;
+
+    gsap.set(menu, {
+      autoAlpha: 0,
+      scale: 0.96,
+      y: -4,
+      transformOrigin: "top left",
+    });
+
+    function open() {
+      if (isOpen) return;
+      isOpen = true;
+      btn.setAttribute("aria-expanded", "true");
+
+      if (isMobile()) {
+        const rect = btn.getBoundingClientRect();
+        menu.style.top = rect.bottom + "px";
+        gsap.set(menu, { transformOrigin: "top center" });
+      } else {
+        menu.style.top = "";
+        gsap.set(menu, { transformOrigin: "top left" });
+      }
+
+      gsap.to(chevron, { rotation: 180, duration: 0.3, ease: EASE });
+
+      gsap.to(menu, {
+        autoAlpha: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.42,
+        ease: EASE,
+      });
+
+      gsap.fromTo(
+        items,
+        { autoAlpha: 0, y: 6 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.35,
+          ease: EASE,
+          stagger: 0.035,
+          delay: 0.04,
+        }
+      );
+    }
+
+    function close() {
+      if (!isOpen) return;
+      isOpen = false;
+      btn.setAttribute("aria-expanded", "false");
+
+      gsap.to(chevron, { rotation: 0, duration: 0.3, ease: EASE });
+
+      gsap.to(menu, {
+        autoAlpha: 0,
+        scale: 0.96,
+        y: -4,
+        duration: 0.25,
+        ease: "power2.in",
+      });
+    }
+
+    function toggle() {
+      isOpen ? close() : open();
+    }
+
+    btn.addEventListener("pointerdown", () => {
+      gsap.to(btn, { scale: 0.96, duration: 0.12, ease: EASE });
+    });
+    btn.addEventListener("pointerup", () => {
+      gsap.to(btn, { scale: 1, duration: 0.2, ease: EASE });
+    });
+    btn.addEventListener("pointerleave", () => {
+      gsap.to(btn, { scale: 1, duration: 0.2, ease: EASE });
+    });
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggle();
+    });
+
+    items.forEach((item) => {
+      item.addEventListener("click", () => {
+        items.forEach((i) => {
+          i.classList.remove("is-active");
+          i.setAttribute("aria-checked", "false");
+        });
+        item.classList.add("is-active");
+        item.setAttribute("aria-checked", "true");
+
+        const check = item.querySelector(".filter__check");
+        if (check) {
+          gsap.fromTo(
+            check,
+            { scale: 0.6, autoAlpha: 0 },
+            { scale: 1, autoAlpha: 1, duration: 0.3, ease: EASE }
+          );
+        }
+
+        // Optional: reflect selection in the button label
+        // btn.querySelector(".filter__label").textContent = item.querySelector("span").textContent;
+
+        close();
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!filter.contains(e.target)) close();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && isOpen) {
+        close();
+        btn.focus();
+      }
+    });
+  });
+}
+
+
+// FILTER LIST REVEAL
+
+function initFilterListReveal() {
+  document.querySelectorAll("[filter-open]").forEach((butt) => {
+    const list =
+      butt.parentElement?.querySelector("[filter-list]") ||
+      document.querySelector("[filter-list]");
+    if (!list) return;
+
+    const hidden = { opacity: 0, clipPath: "inset(0% 0% 100% 0%)" };
+    const shown = { opacity: 1, clipPath: "inset(0% 0% 0% 0%)" };
+
+    let isOpen = false;
+    gsap.set(list, hidden);
+
+    const open = () => {
+      if (isOpen) return;
+      isOpen = true;
+      // Force it visible (overrides Webflow's display:none on mobile)
+      gsap.set(list, { display: "flex" });
+      gsap.to(list, { ...shown, duration: 0.5, ease: "power3.out" });
+    };
+
+    const close = () => {
+      if (!isOpen) return;
+      isOpen = false;
+      gsap.to(list, {
+        ...hidden,
+        duration: 0.4,
+        ease: "power3.in",
+        // Clear inline display so Webflow's breakpoints take over again
+        // (none on mobile, flex on desktop)
+        onComplete: () => gsap.set(list, { clearProps: "display" }),
+      });
+    };
+
+    butt.addEventListener("click", open);
+
+    list.querySelectorAll("[filter-button]").forEach((child) => {
+      child.addEventListener("click", close);
     });
   });
 }
