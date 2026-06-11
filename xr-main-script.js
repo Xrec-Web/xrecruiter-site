@@ -263,7 +263,7 @@ function initResHover() {
     if (!img && !line) return;
 
     if (img) {
-      gsap.set(img, { scale: 0, transformOrigin: "center center" });
+      gsap.set(img, { scale: 1, transformOrigin: "center center" });
     }
     if (line) {
       gsap.set(line, { width: "0%" });
@@ -271,7 +271,7 @@ function initResHover() {
 
     wrap.addEventListener("mouseenter", () => {
       if (img) {
-        gsap.to(img, { scale: 1, duration: 0.5, ease: "power3.out" });
+        gsap.to(img, { scale: 1.05, duration: 0.5, ease: "power3.out" });
       }
       if (line) {
         gsap.to(line, { width: "100%", duration: 0.5, ease: "power3.out" });
@@ -280,7 +280,7 @@ function initResHover() {
 
     wrap.addEventListener("mouseleave", () => {
       if (img) {
-        gsap.to(img, { scale: 0, duration: 0.5, ease: "power3.in" });
+        gsap.to(img, { scale: 1, duration: 0.5, ease: "power3.in" });
       }
       if (line) {
         gsap.to(line, { width: "0%", duration: 0.5, ease: "power3.in" });
