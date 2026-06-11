@@ -46,6 +46,7 @@ function initPage() {
   if (has('.pill-container')) initPillSimulation();
   if (has('.lottie-anim')) initLottieAnimations();
   if (has('[data-vimeo-player-init]')) initVimeoPlayer();
+  if (has('[res-wrap]')) initResHover();
   initTabTitleBlur();
 }
 
@@ -248,6 +249,42 @@ function initButtonHover() {
       animateChars(splitOriginal.chars, "0%");
       animateChars(splitClone.chars, "100%");
       gsap.to(bg, { scale: 1, duration: 0.5, ease: "power3.out" });
+    });
+  });
+}
+
+
+// RES HOVER
+
+function initResHover() {
+  document.querySelectorAll("[res-wrap]").forEach((wrap) => {
+    const img = wrap.querySelector("[res-img]");
+    const line = wrap.querySelector("[res-line]");
+    if (!img && !line) return;
+
+    if (img) {
+      gsap.set(img, { scale: 0, transformOrigin: "center center" });
+    }
+    if (line) {
+      gsap.set(line, { width: "0%" });
+    }
+
+    wrap.addEventListener("mouseenter", () => {
+      if (img) {
+        gsap.to(img, { scale: 1, duration: 0.5, ease: "power3.out" });
+      }
+      if (line) {
+        gsap.to(line, { width: "100%", duration: 0.5, ease: "power3.out" });
+      }
+    });
+
+    wrap.addEventListener("mouseleave", () => {
+      if (img) {
+        gsap.to(img, { scale: 0, duration: 0.5, ease: "power3.in" });
+      }
+      if (line) {
+        gsap.to(line, { width: "0%", duration: 0.5, ease: "power3.in" });
+      }
     });
   });
 }
