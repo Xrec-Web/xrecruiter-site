@@ -47,6 +47,7 @@ function initPage() {
   if (has('.lottie-anim')) initLottieAnimations();
   if (has('[data-vimeo-player-init]')) initVimeoPlayer();
   if (has('[res-wrap]')) initResHover();
+  if (has('[cta-link-block]')) initCtaLinkBlock();
   if (has('[data-filter]')) initFilterDropdown();
   if (has('[filter-open]')) initFilterListReveal();
   initTabTitleBlur();
@@ -241,17 +242,27 @@ function initButtonHover() {
       });
     };
 
-    button.addEventListener("mouseenter", () => {
+    const enter = () => {
       animateChars(splitOriginal.chars, "-100%");
       animateChars(splitClone.chars, "0%");
       gsap.to(bg, { scale: 0.95, duration: 0.5, ease: "power3.out" });
-    });
+    };
 
-    button.addEventListener("mouseleave", () => {
+    const leave = () => {
       animateChars(splitOriginal.chars, "0%");
       animateChars(splitClone.chars, "100%");
       gsap.to(bg, { scale: 1, duration: 0.5, ease: "power3.out" });
-    });
+    };
+
+    // Expose so a parent (e.g. [cta-link-block]) can drive the animation.
+    button._btnX2 = { enter, leave };
+
+    // If wrapped in a cta-link-block, let the block control the hover instead
+    // so the button's own listeners don't reverse it mid-block.
+    if (!button.closest("[cta-link-block]")) {
+      button.addEventListener("mouseenter", enter);
+      button.addEventListener("mouseleave", leave);
+    }
   });
 }
 
@@ -287,6 +298,34 @@ function initResHover() {
       if (line) {
         gsap.to(line, { width: "0%", duration: 0.5, ease: "power3.in" });
       }
+    });
+  });
+}
+
+
+// CTA LINK BLOCK
+
+function initCtaLinkBlock() {
+  document.querySelectorAll("[cta-link-block]").forEach((block) => {
+    const img = block.querySelector("[cta-img]");
+    const button = block.querySelector('[data-gsap="btn.x2"]');
+
+    if (img) {
+      gsap.set(img, { scale: 1, transformOrigin: "center center" });
+    }
+
+    block.addEventListener("mouseenter", () => {
+      if (img) {
+        gsap.to(img, { scale: 1.05, duration: 0.5, ease: "power3.out" });
+      }
+      button?._btnX2?.enter();
+    });
+
+    block.addEventListener("mouseleave", () => {
+      if (img) {
+        gsap.to(img, { scale: 1, duration: 0.5, ease: "power3.in" });
+      }
+      button?._btnX2?.leave();
     });
   });
 }
