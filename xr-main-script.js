@@ -323,7 +323,7 @@ function initCtaLinkBlock() {
 
     block.addEventListener("mouseleave", () => {
       if (img) {
-        gsap.to(img, { scale: 1, duration: 0.5, ease: "power3.in" });
+        gsap.to(img, { scale: 1, duration: 0.35, ease: "power4.in" });
       }
       button?._btnX2?.leave();
     });
