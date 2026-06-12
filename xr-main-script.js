@@ -1475,9 +1475,9 @@ function initEntranceAnimation() {
 }
 
 function runEntranceTimeline() {
-  const tl = gsap.timeline({ defaults: { ease: "expo.out" } });
+  const tl = gsap.timeline({ defaults: { ease: "power3.out", force3D: true } });
 
-  tl.to(".section.h-hero", { autoAlpha: 1, duration: 0.15 }, 0);
+  tl.to(".section.h-hero", { autoAlpha: 1, duration: 0.35 }, 0);
 
   const groups = [1, 2, 3, 4, 5].map((i) => ({
     titles: Array.from(document.querySelectorAll(`.h-title.h-${i}`)),
@@ -1510,8 +1510,8 @@ function runEntranceTimeline() {
       const s = splitTitles(el);
       tl.from(
         s.chars,
-        { yPercent: 100, opacity: 0, duration: 0.35, stagger: 0.012 },
-        gi === 0 ? "+=0.05" : "-=0.22"
+        { yPercent: 100, opacity: 0, duration: 0.5, stagger: 0.018 },
+        gi === 0 ? "+=0.05" : "-=0.32"
       );
     });
 
@@ -1524,8 +1524,8 @@ function runEntranceTimeline() {
       const s = splitLines(el);
       tl.from(
         s.lines,
-        { yPercent: 100, opacity: 0, duration: 0.38, stagger: 0.06 },
-        "-=0.28"
+        { yPercent: 100, opacity: 0, duration: 0.55, stagger: 0.07 },
+        "-=0.4"
       );
     });
   });
@@ -1533,11 +1533,11 @@ function runEntranceTimeline() {
   const feature = document.querySelector(".h-hero_feature");
   if (feature) {
     gsap.set(feature, { y: 48, opacity: 0, willChange: "transform, opacity" });
-    tl.to(feature, { y: 0, opacity: 1, duration: 0.6 }, "-=0.15");
+    tl.to(feature, { y: 0, opacity: 1, duration: 0.8 }, "-=0.3");
   }
 
   const nav = document.querySelector(".nav_section");
-  if (nav) {
+  if (nav && nav.hasAttribute("home-page")) {
     gsap.set(nav, { y: -32, opacity: 0, willChange: "transform, opacity" });
     tl.to(nav, { y: 0, opacity: 1, duration: 0.55 }, "-=0.55");
   }
