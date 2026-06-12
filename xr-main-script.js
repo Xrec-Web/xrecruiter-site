@@ -33,7 +33,10 @@ function initPage() {
   if (has('[data-gsap="btn.x2"]')) initButtonHover();
   if (has('.process-icon')) initProcessIcons();
   if (has('.bg_img_row')) initBackgroundScroll();
-  if (has('[data-animate-theme-to]')) initColorThemeScroll();
+  if (has('[data-animate-theme-to]')) {
+    initColorThemeScroll();
+    initColorThemes();
+  }
   if (has('.split, [an-title], [an-body]')) initTextAnimations();
   if (has('[data-centered-slider="wrapper"]')) initSliders();
   if (has('.img-para')) initImageParallax();
@@ -408,20 +411,72 @@ function initBackgroundScroll() {
 
 function initColorThemeScroll() {
   document.addEventListener("colorThemesReady", () => {
-    $(`[data-animate-theme-to]`).each(function () {
-      const theme = $(this).attr("data-animate-theme-to");
-      const brand = $(this).attr("data-animate-brand-to");
+    document.querySelectorAll("[data-animate-theme-to]").forEach((el) => {
+      const theme = el.getAttribute("data-animate-theme-to");
 
       ScrollTrigger.create({
-        trigger: this,
+        trigger: el,
         start: "top center",
         end: "bottom center",
         onToggle: ({ isActive }) => {
-          if (isActive) gsap.to("body", colorThemes.getTheme(theme, brand));
+          if (isActive) {
+            gsap.to("body", {
+              ...colorThemes.getTheme(theme),
+              duration: 0.6,
+              ease: "power2.inOut",
+            });
+          }
         },
       });
     });
   });
+}
+
+
+// COLOR THEME COLLECTOR
+// Reads the two Webflow theme modes (compiled to `.u-theme-*` classes with
+// `--_theme*` variables) and resolves each to a { var: value } map, then exposes
+// window.colorThemes + a `colorThemesReady` event for the scroll trigger above.
+
+function initColorThemes() {
+  window.colorThemes = {
+    themes: {},
+    getTheme(name = "") {
+      return this.themes[name] || this.themes[Object.keys(this.themes)[0]] || {};
+    },
+  };
+
+  const link = document.querySelector('link[rel="stylesheet"]');
+  if (!link?.href) return;
+
+  fetch(link.href)
+    .then((res) => res.text())
+    .then((css) => {
+      // Pull the theme variable names and the .u-theme-* classes out of the CSS.
+      const variables = [
+        ...new Set((css.match(/--_theme[\w-]+:/g) || []).map((v) => v.replace(":", ""))),
+      ];
+      const classes = [...new Set(css.match(/\.u-theme-[\w-]+/g) || [])];
+
+      const html = document.documentElement;
+      const original = html.getAttribute("class");
+
+      // Apply each theme class to <html>, read the resolved variable values,
+      // then restore the original classes.
+      classes.forEach((dotted) => {
+        const cls = dotted.slice(1);
+        const name = cls.replace("u-theme-", "");
+        html.setAttribute("class", cls);
+        const computed = getComputedStyle(html);
+        const vars = {};
+        variables.forEach((v) => (vars[v] = computed.getPropertyValue(v).trim()));
+        window.colorThemes.themes[name] = vars;
+      });
+
+      html.setAttribute("class", original || "");
+      document.dispatchEvent(new CustomEvent("colorThemesReady"));
+    })
+    .catch((err) => console.error("Color themes failed to load:", err.message));
 }
 
 
