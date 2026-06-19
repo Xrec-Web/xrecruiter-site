@@ -482,11 +482,11 @@ function initColorThemes() {
 
 
 // NAV THEME + LOGO CROSSFADE
-// Mirrors the theme of whichever section currently sits beneath the fixed nav
-// onto .nav_section, and crossfades the two stacked logos ([nav-white] /
-// [nav-dark]) inside [nav-logo-wrap] to match.
-//   dark section  -> .nav_section gets .u-theme-dark, [nav-white] fades to 100%
-//   light section -> .nav_section gets .u-theme-light, [nav-dark]  fades to 100%
+// Mirrors the theme of whichever [data-animate-theme-to] section currently sits
+// beneath the fixed nav onto .nav_section, and crossfades the two stacked logos
+// ([nav-white] / [nav-dark]) inside [nav-logo-wrap] to match.
+//   data-animate-theme-to="dark"  -> .nav_section gets .u-theme-dark, [nav-white] -> 100%
+//   data-animate-theme-to="light" -> .nav_section gets .u-theme-light, [nav-dark]  -> 100%
 
 function initNavTheme() {
   const nav = document.querySelector(".nav_section");
@@ -506,17 +506,18 @@ function initNavTheme() {
 
     // Over a dark section show the white logo; over a light section the dark one.
     const showWhite = theme === "dark";
-    const duration = instant || reducedMotion ? 0 : 0.4;
+    const duration = instant || reducedMotion ? 0 : 0.6;
 
-    if (navWhite) gsap.to(navWhite, { opacity: showWhite ? 1 : 0, duration, ease: "power2.out" });
-    if (navDark) gsap.to(navDark, { opacity: showWhite ? 0 : 1, duration, ease: "power2.out" });
+    // Smooth, symmetrical crossfade — matches the body theme tween easing.
+    if (navWhite) gsap.to(navWhite, { opacity: showWhite ? 1 : 0, duration, ease: "power2.inOut", overwrite: "auto" });
+    if (navDark) gsap.to(navDark, { opacity: showWhite ? 0 : 1, duration, ease: "power2.inOut", overwrite: "auto" });
   };
 
-  const sections = gsap.utils.toArray(".section.u-theme-dark, .section.u-theme-light");
+  const sections = gsap.utils.toArray('[data-animate-theme-to="light"], [data-animate-theme-to="dark"]');
   if (!sections.length) return;
 
   // Start from the first themed section instantly so there's no load flash.
-  applyNavTheme(sections[0].classList.contains("u-theme-dark") ? "dark" : "light", true);
+  applyNavTheme(sections[0].getAttribute("data-animate-theme-to"), true);
 
   // The nav is fixed at the top, so a section "owns" it while that section
   // spans the nav's vertical midpoint. Functional values re-evaluate on refresh
@@ -524,7 +525,7 @@ function initNavTheme() {
   const navMid = () => "top+=" + nav.offsetHeight / 2;
 
   sections.forEach((section) => {
-    const theme = section.classList.contains("u-theme-dark") ? "dark" : "light";
+    const theme = section.getAttribute("data-animate-theme-to");
 
     ScrollTrigger.create({
       trigger: section,
