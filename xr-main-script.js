@@ -37,6 +37,7 @@ function initPage() {
     initColorThemeScroll();
     initColorThemes();
   }
+  if (has('.nav_section')) initNavTheme();
   if (has('.split, [an-title], [an-body]')) initTextAnimations();
   if (has('[data-centered-slider="wrapper"]')) initSliders();
   if (has('.img-para')) initImageParallax();
@@ -477,6 +478,63 @@ function initColorThemes() {
       document.dispatchEvent(new CustomEvent("colorThemesReady"));
     })
     .catch((err) => console.error("Color themes failed to load:", err.message));
+}
+
+
+// NAV THEME + LOGO CROSSFADE
+// Mirrors the theme of whichever section currently sits beneath the fixed nav
+// onto .nav_section, and crossfades the two stacked logos ([nav-white] /
+// [nav-dark]) inside [nav-logo-wrap] to match.
+//   dark section  -> .nav_section gets .u-theme-dark, [nav-white] fades to 100%
+//   light section -> .nav_section gets .u-theme-light, [nav-dark]  fades to 100%
+
+function initNavTheme() {
+  const nav = document.querySelector(".nav_section");
+  if (!nav || !hasScrollTrigger) return;
+
+  const navWhite = nav.querySelector("[nav-white]");
+  const navDark = nav.querySelector("[nav-dark]");
+
+  let current = null;
+
+  const applyNavTheme = (theme, instant) => {
+    if (theme === current) return;
+    current = theme;
+
+    nav.classList.toggle("u-theme-dark", theme === "dark");
+    nav.classList.toggle("u-theme-light", theme === "light");
+
+    // Over a dark section show the white logo; over a light section the dark one.
+    const showWhite = theme === "dark";
+    const duration = instant || reducedMotion ? 0 : 0.4;
+
+    if (navWhite) gsap.to(navWhite, { opacity: showWhite ? 1 : 0, duration, ease: "power2.out" });
+    if (navDark) gsap.to(navDark, { opacity: showWhite ? 0 : 1, duration, ease: "power2.out" });
+  };
+
+  const sections = gsap.utils.toArray(".section.u-theme-dark, .section.u-theme-light");
+  if (!sections.length) return;
+
+  // Start from the first themed section instantly so there's no load flash.
+  applyNavTheme(sections[0].classList.contains("u-theme-dark") ? "dark" : "light", true);
+
+  // The nav is fixed at the top, so a section "owns" it while that section
+  // spans the nav's vertical midpoint. Functional values re-evaluate on refresh
+  // so the swap point stays correct if the nav height changes.
+  const navMid = () => "top+=" + nav.offsetHeight / 2;
+
+  sections.forEach((section) => {
+    const theme = section.classList.contains("u-theme-dark") ? "dark" : "light";
+
+    ScrollTrigger.create({
+      trigger: section,
+      start: () => "top " + navMid(),
+      end: () => "bottom " + navMid(),
+      onToggle: ({ isActive }) => {
+        if (isActive) applyNavTheme(theme);
+      },
+    });
+  });
 }
 
 
