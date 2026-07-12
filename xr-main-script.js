@@ -54,7 +54,6 @@ function initPage() {
   if (has('[cta-link-block]')) initCtaLinkBlock();
   if (has('[data-filter]')) initFilterDropdown();
   if (has('[filter-open]')) initFilterListReveal();
-  initTabTitleBlur();
 }
 
 document.addEventListener("DOMContentLoaded", initPage);
@@ -1121,22 +1120,6 @@ function initMagneticEffect() {
     m.addEventListener("mouseenter", resetOnEnter);
     m.addEventListener("mousemove", moveMagnet);
     m.addEventListener("mouseleave", resetMagnet);
-  });
-}
-
-
-// TAB TITLE BLUR
-
-function initTabTitleBlur() {
-  const documentTitleStore = document.title;
-  const documentTitleOnBlur = "Come back! We miss you - xrecruiter";
-
-  window.addEventListener("focus", () => {
-    document.title = documentTitleStore;
-  });
-
-  window.addEventListener("blur", () => {
-    document.title = documentTitleOnBlur;
   });
 }
 
