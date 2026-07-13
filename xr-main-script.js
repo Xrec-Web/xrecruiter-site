@@ -1406,44 +1406,56 @@ function initFilterDropdown() {
 // FILTER LIST REVEAL
 
 function initFilterListReveal() {
-  document.querySelectorAll("[filter-open]").forEach((butt) => {
-    const list =
-      butt.parentElement?.querySelector("[filter-list]") ||
-      document.querySelector("[filter-list]");
-    if (!list) return;
+  const mm = gsap.matchMedia();
 
-    const hidden = { opacity: 0, clipPath: "inset(0% 0% 100% 0%)" };
-    const shown = { opacity: 1, clipPath: "inset(0% 0% 0% 0%)" };
+  // Only bind below desktop — on desktop Webflow shows [filter-list] outright
+  // and there's no [filter-open] button to reveal it.
+  mm.add("(max-width: 991px)", () => {
+    const teardown = [];
 
-    let isOpen = false;
-    gsap.set(list, hidden);
+    document.querySelectorAll("[filter-open]").forEach((butt) => {
+      const list =
+        butt.parentElement?.querySelector("[filter-list]") ||
+        document.querySelector("[filter-list]");
+      if (!list) return;
 
-    const open = () => {
-      if (isOpen) return;
-      isOpen = true;
-      // Force it visible (overrides Webflow's display:none on mobile)
-      gsap.set(list, { display: "flex" });
-      gsap.to(list, { ...shown, duration: 0.5, ease: "power3.out" });
-    };
+      const hidden = { opacity: 0, clipPath: "inset(0% 0% 100% 0%)" };
+      const shown = { opacity: 1, clipPath: "inset(0% 0% 0% 0%)" };
 
-    const close = () => {
-      if (!isOpen) return;
-      isOpen = false;
-      gsap.to(list, {
-        ...hidden,
-        duration: 0.4,
-        ease: "power3.in",
-        // Clear inline display so Webflow's breakpoints take over again
-        // (none on mobile, flex on desktop)
-        onComplete: () => gsap.set(list, { clearProps: "display" }),
+      let isOpen = false;
+      gsap.set(list, hidden);
+
+      const open = () => {
+        if (isOpen) return;
+        isOpen = true;
+        // Force it visible (overrides Webflow's display:none on mobile)
+        gsap.set(list, { display: "flex" });
+        gsap.to(list, { ...shown, duration: 0.5, ease: "power3.out" });
+      };
+
+      const close = () => {
+        if (!isOpen) return;
+        isOpen = false;
+        gsap.to(list, {
+          ...hidden,
+          duration: 0.4,
+          ease: "power3.in",
+          // Clear inline display so Webflow's breakpoints take over again
+          onComplete: () => gsap.set(list, { clearProps: "display" }),
+        });
+      };
+
+      const onToggle = () => (isOpen ? close() : open());
+      butt.addEventListener("click", onToggle);
+      teardown.push(() => butt.removeEventListener("click", onToggle));
+
+      list.querySelectorAll("[filter-button]").forEach((child) => {
+        child.addEventListener("click", close);
+        teardown.push(() => child.removeEventListener("click", close));
       });
-    };
-
-    butt.addEventListener("click", () => (isOpen ? close() : open()));
-
-    list.querySelectorAll("[filter-button]").forEach((child) => {
-      child.addEventListener("click", close);
     });
+
+    return () => teardown.forEach((fn) => fn());
   });
 }
 
